@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cartas Wavelength</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      min-width: 100vw;
+      background: linear-gradient(120deg, #1e3a8a 50%, #be123c 50%);
+      transition: background 0.5s;
+    }
+    #card {
+      display: flex;
+      width: 90vw;
+      height: 80vh;
+      max-width: 900px;
+      max-height: 600px;
+      background: rgba(0,0,0,0.55);
+      border-radius: 2rem;
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
+      overflow: hidden;
+    }
+    .side {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 700;
+      padding: 2rem;
+      text-align: center;
+      user-select: none;
+      height: 100%;
+    }
+    .left {
+      background: rgba(30, 58, 138, 0.7);
+      border-right: 3px solid #fff;
+    }
+    .right {
+      background: rgba(190, 18, 60, 0.7);
+    }
+    #cargar {
+      display: none;
+    }
+    #reset {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      z-index: 10;
+      background: #fff;
+      color: #222;
+      padding: 0.6em 1.2em;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 0.6em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      display: none;
+    }
+    #mensaje {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2em;
+      color: #fff;
+      text-shadow: 1px 2px 4px #000;
+      background: rgba(0,0,0,0.5);
+      padding: 0.4em 1em;
+      border-radius: 0.5em;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <input type="file" id="cargar" accept=".csv" style="display: none;" />
+  <button id="reset">Reiniciar mazo</button>
+  <div id="card" style="display:none;">
+    <div class="side left" id="left"></div>
+    <div class="side right" id="right"></div>
+  </div>
+  <div id="mensaje">Cargá un archivo CSV exportado de Google Sheets.</div>
+
+  <script>
+    let cartas = [];
+    let usadas = [];
+    let current = null;
+
+    function mostrarCarta() {
+      if (cartas.length === 0) {
+        document.getElementById('mensaje').textContent = "¡No quedan más cartas! Reiniciá el mazo.";
+        document.getElementById('mensaje').style.display = "block";
+        document.getElementById('reset').style.display = "block";
+        document.getElementById('card').style.display = "none";
+        return;
+      }
+      const i = Math.floor(Math.random() * cartas.length);
+      current = cartas.splice(i, 1)[0];
+      usadas.push(current);
+      document.getElementById('left').textContent = current[0];
+      document.getElementById('right').textContent = current[1];
+      document.getElementById('card').style.display = "flex";
+      document.getElementById('mensaje').style.display = "none";
+      document.getElementById('reset').style.display = "none";
+    }
+
+    function reiniciar() {
+      cartas = usadas.slice();
+      usadas = [];
+      mostrarCarta();
+    }
+
+    function parseCSV(text) {
+      const lines = text.trim().split('\n').filter(l => l.trim().length);
+      const data = [];
+      for (let line of lines) {
+        // Soporta separador por coma o punto y coma
+        let parts = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)|;(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+        parts = parts.map(x => x.replace(/^"|"$/g, '').trim());
+        if (parts.length >= 2 && parts[0] && parts[1]) data.push([parts[0], parts[1]]);
+      }
+      return data;
+    }
+
+    // Función para cargar el CSV automáticamente
+    async function cargarCSV() {
+      try {
+        const response = await fetch('cartas.csv');
+        const text = await response.text();
+        cartas = parseCSV(text);
+        usadas = [];
+        if (cartas.length === 0) {
+          document.getElementById('mensaje').textContent = "El archivo no tiene pares válidos.";
+          document.getElementById('mensaje').style.display = "block";
+          document.getElementById('card').style.display = "none";
+        } else {
+          mostrarCarta();
+        }
+      } catch (error) {
+        document.getElementById('mensaje').textContent = "Error al cargar el archivo CSV.";
+        document.getElementById('mensaje').style.display = "block";
+      }
+    }
+
+    // Cargar el CSV cuando se inicia la página
+    cargarCSV();
+
+    document.getElementById('card').addEventListener('click', mostrarCarta);
+    document.body.addEventListener('keydown', (e) => {
+      if (e.code === "Space" || e.code === "ArrowRight" || e.code === "Enter") {
+        mostrarCarta();
+      }
+    });
+
+    document.getElementById('reset').addEventListener('click', reiniciar);
+  </script>
+</body>
+</html>
